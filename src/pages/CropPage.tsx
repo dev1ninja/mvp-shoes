@@ -39,7 +39,7 @@ export default function CropPage() {
     const [imgSrc, setImgSrc] = useState('')
     const previewCanvasRef = useRef<HTMLCanvasElement>(null)
     const imgRef = useRef<HTMLImageElement>(null)
-    const cropedRef = useRef<HTMLCanvasElement>(null)
+    const [cropedRef, setCropedRef] = useState<HTMLCanvasElement | undefined>(undefined)
     // const hiddenAnchorRef = useRef<HTMLAnchorElement>(null)
     // const blobUrlRef = useRef('')
     const [crop, setCrop] = useState<Crop>()
@@ -97,6 +97,7 @@ export default function CropPage() {
                 previewCanvasRef.current
             ) {
                 // We use canvasPreview as it's much faster than imgPreview.
+                setCropedRef(previewCanvasRef.current)
                 canvasPreview(
                     imgRef.current,
                     previewCanvasRef.current,
@@ -121,16 +122,16 @@ export default function CropPage() {
     }
 
     useEffect(() => {
-        if (cropImage && previewCanvasRef.current) {
-            cv.imshow(previewCanvasRef.current, cropImage);
+        if (cropImage && cropedRef) {
+            cv.imshow(cropedRef, cropImage);
         }
     }, [cropImage]);
 
     useEffect(() => {
-        if (imgRef.current) {
-            const src = cv.imread(imgRef.current)
+        if (imgRef.current && cropedRef) {
+            // const src = cv.imread(imgRef.current)
             // const back = cv.imread(imgRef.current)
-            // const src = cv.imread(cropedRef.current)
+            const src = cv.imread(cropedRef)
             const hsvImg = new cv.Mat();
             cv.cvtColor(src, hsvImg, cv.COLOR_BGR2HSV);
             for (let i = 0; i < hsvImg.rows; i++) {
@@ -143,16 +144,15 @@ export default function CropPage() {
             }
             let dst = new cv.Mat();
             cv.cvtColor(hsvImg, dst, cv.COLOR_HSV2BGR);
-            // new cv.Scalar(HSVcolor.h, HSVcolor.s, HSVcolor.v); // Change the color here
-            // cv.addWeighted(src, 1, dst, 0, 0, dst);
 
             setCropImage(prev => {
-                if ( !prev?.isDeleted() )
+                if (!prev?.isDeleted())
                     prev?.delete()
                 return dst
             });
-            // src.delete();
-            // hsvImg.delete();
+            
+            src.delete();
+            hsvImg.delete();
             // dst.delete();
         }
     }, [HSVcolor])
@@ -204,15 +204,6 @@ export default function CropPage() {
                 <>
                     <canvas
                         ref={previewCanvasRef}
-                        style={{
-                            border: '1px solid black',
-                            objectFit: 'contain',
-                            width: completedCrop.width,
-                            height: completedCrop.height,
-                        }}
-                    />
-                    <canvas
-                        ref={cropedRef}
                         style={{
                             border: '1px solid black',
                             objectFit: 'contain',
